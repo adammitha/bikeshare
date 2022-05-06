@@ -1,9 +1,10 @@
 use axum::{extract::Query, http::StatusCode, Json, response::IntoResponse};
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 use crate::API_URL;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct StationQuery {
     name: String,
 }
@@ -25,6 +26,7 @@ pub struct StationStatus {
     is_estation: bool,
 }
 
+#[instrument]
 pub async fn station_status(_query: Query<StationQuery>) -> Result<Json<StationStatus>, StatusError> {
     let stations = fetch_stations(API_URL).await?;
     Ok(Json(stations.result[0].clone()))
