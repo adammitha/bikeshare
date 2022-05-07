@@ -1,5 +1,3 @@
-use std::num::ParseFloatError;
-
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use sublime_fuzzy::{FuzzySearch, Scoring};
@@ -53,20 +51,14 @@ where
         where
             E: serde::de::Error,
         {
-            let coords = v
-                .split(',')
-                .map(|c| c.trim().parse::<f64>())
-                .collect::<Result<Vec<f64>, ParseFloatError>>()
-                .map_err(E::custom)
-                .ok();
+            let mut coords = v.split(',').map(|c| c.trim().parse::<f64>());
 
-            if let Some(coords) = coords {
-                Ok(Some(Coordinate {
-                    latitude: coords[0],
-                    longitude: coords[1],
-                }))
-            } else {
-                Ok(None)
+            match (coords.next(), coords.next()) {
+                (Some(Ok(latitude)), Some(Ok(longitude))) => Ok(Some(Coordinate {
+                    latitude,
+                    longitude,
+                })),
+                _ => Ok(None),
             }
         }
     }
