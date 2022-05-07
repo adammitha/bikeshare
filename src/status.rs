@@ -1,5 +1,7 @@
+use std::num::ParseFloatError;
+
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use sublime_fuzzy::{FuzzySearch, Scoring};
 use tracing::instrument;
 
@@ -18,13 +20,57 @@ struct StatusApiData {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct StationStatus {
     name: String,
-    coordinates: String,
+    #[serde(deserialize_with = "deserialize_coordinate")]
+    coordinates: Option<Coordinate>,
     total_slots: u8,
     free_slots: u8,
     avl_bikes: u8,
     operative: bool,
     style: String,
     is_estation: bool,
+}
+
+#[derive(Serialize, Clone)]
+struct Coordinate {
+    latitude: f64,
+    longitude: f64,
+}
+
+fn deserialize_coordinate<'de, D>(deserializer: D) -> Result<Option<Coordinate>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct CoordinateVisitor;
+
+    impl<'de> Visitor<'de> for CoordinateVisitor {
+        type Value = Option<Coordinate>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a string containing coordinates")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            let coords = v
+                .split(',')
+                .map(|c| c.trim().parse::<f64>())
+                .collect::<Result<Vec<f64>, ParseFloatError>>()
+                .map_err(E::custom)
+                .ok();
+
+            if let Some(coords) = coords {
+                Ok(Some(Coordinate {
+                    latitude: coords[1],
+                    longitude: coords[0],
+                }))
+            } else {
+                Ok(None)
+            }
+        }
+    }
+    deserializer.deserialize_any(CoordinateVisitor)
 }
 
 #[instrument]
