@@ -62,8 +62,8 @@ where
 
             if let Some(coords) = coords {
                 Ok(Some(Coordinate {
-                    latitude: coords[1],
-                    longitude: coords[0],
+                    latitude: coords[0],
+                    longitude: coords[1],
                 }))
             } else {
                 Ok(None)
