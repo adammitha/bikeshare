@@ -1,5 +1,6 @@
-use axum::{extract::Query, http::StatusCode, Json, response::IntoResponse};
+use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
+use sublime_fuzzy::{FuzzySearch, Scoring};
 use tracing::instrument;
 
 use crate::API_URL;
@@ -27,16 +28,27 @@ pub struct StationStatus {
 }
 
 #[instrument]
-pub async fn station_status(_query: Query<StationQuery>) -> Result<Json<StationStatus>, StatusError> {
-    let stations = fetch_stations(API_URL).await?;
-    Ok(Json(stations.result[0].clone()))
+pub async fn station_status(
+    query: Query<StationQuery>,
+) -> Result<Json<Vec<StationStatus>>, StatusError> {
+    let mut stations = fetch_stations(API_URL).await?.result;
+    if let Some(name) = &query.name {
+        stations = stations
+            .into_iter()
+            .filter(|station| {
+                FuzzySearch::new(name, &station.name)
+                    .case_insensitive()
+                    .score_with(&Scoring::default())
+                    .best_match()
+                    .is_some()
+            })
+            .collect::<Vec<StationStatus>>();
+    }
+    Ok(Json(stations))
 }
 
 async fn fetch_stations(uri: &str) -> Result<StatusApiData, StatusError> {
-    Ok(reqwest::get(uri)
-        .await?
-        .json::<StatusApiData>()
-        .await?)
+    Ok(reqwest::get(uri).await?.json::<StatusApiData>().await?)
 }
 
 /// Errors that can occur when retrieving the status of a bike station
@@ -49,7 +61,10 @@ impl IntoResponse for StatusError {
         let (status, message) = match self {
             StatusError::ApiFailure(inner) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error fetching station status from the bike share API: {}", inner),
+                format!(
+                    "Error fetching station status from the bike share API: {}",
+                    inner
+                ),
             ),
         };
         (status, message).into_response()

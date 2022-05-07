@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(unused_variables)]
 pub mod status;
 
 const API_URL: &'static str = "https://vancouver-ca.smoove.pro/api-public/stations";
