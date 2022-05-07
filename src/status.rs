@@ -6,7 +6,7 @@ use crate::API_URL;
 
 #[derive(Deserialize, Debug)]
 pub struct StationQuery {
-    name: String,
+    name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
