@@ -69,7 +69,7 @@ where
 pub async fn station_status(
     query: Query<StationQuery>,
 ) -> Result<Json<Vec<StationStatus>>, StatusError> {
-    let mut stations = fetch_stations(API_URL).await?.result;
+    let mut stations = reqwest::get(API_URL).await?.json::<StatusApiData>().await?.result;
     if let Some(name) = &query.name {
         stations = stations
             .into_iter()
@@ -83,10 +83,6 @@ pub async fn station_status(
             .collect::<Vec<StationStatus>>();
     }
     Ok(Json(stations))
-}
-
-async fn fetch_stations(uri: &str) -> Result<StatusApiData, StatusError> {
-    Ok(reqwest::get(uri).await?.json::<StatusApiData>().await?)
 }
 
 /// Errors that can occur when retrieving the status of a bike station
