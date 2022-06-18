@@ -65,6 +65,8 @@ where
     deserializer.deserialize_any(CoordinateVisitor)
 }
 
+/// Queries the 3rd-party bikeshare API, filters the result based on the user's search string,
+/// and returns a JSON array of matching stations
 #[instrument]
 pub async fn station_status(
     query: Query<StationQuery>,
