@@ -10,6 +10,27 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
+    setup_tracing();
+    let app = Router::new().route("/status", get(station_status)).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(
+                DefaultMakeSpan::new()
+                    .level(Level::INFO)
+                    .include_headers(true),
+            )
+            .on_request(DefaultOnRequest::new().level(Level::INFO))
+            .on_response(DefaultOnResponse::new().level(Level::INFO)),
+    );
+
+    let addr = "0.0.0.0:8080".parse::<SocketAddr>().unwrap();
+    tracing::info!("Listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+fn setup_tracing() {
     let mut metadata: HashMap<String, String> = HashMap::with_capacity(1);
     metadata.insert(
         "x-honeycomb-team".into(),
@@ -39,22 +60,4 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .with(otel_layer)
         .init();
-
-    let app = Router::new().route("/status", get(station_status)).layer(
-        TraceLayer::new_for_http()
-            .make_span_with(
-                DefaultMakeSpan::new()
-                    .level(Level::INFO)
-                    .include_headers(true),
-            )
-            .on_request(DefaultOnRequest::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO)),
-    );
-
-    let addr = "0.0.0.0:8080".parse::<SocketAddr>().unwrap();
-    tracing::info!("Listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
 }
