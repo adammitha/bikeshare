@@ -128,7 +128,6 @@ dependencies = [
  "serde",
  "sublime_fuzzy",
  "tokio",
- "tonic",
  "tower-http",
  "tracing",
  "tracing-opentelemetry",

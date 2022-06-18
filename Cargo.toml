@@ -17,6 +17,5 @@ tower-http = { version = "0.3.0", features = ["trace"] }
 sublime_fuzzy = "0.7"
 tracing-opentelemetry = "0.17"
 opentelemetry-otlp = { version = "0.10", features = ["http-proto", "reqwest-client"] }
-tonic = "0.6.2"
 opentelemetry = { version = "0.17", features = ["rt-tokio"] }
 opentelemetry-semantic-conventions = "0.9"
