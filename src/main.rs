@@ -15,7 +15,6 @@ async fn main() {
     let (prometheus_layer, metrics_handler) = PrometheusMetricLayer::pair();
     let app = Router::new()
         .route("/status", get(station_status))
-        .route("/metrics", get(|| async move { metrics_handler.render() }))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(
@@ -28,9 +27,31 @@ async fn main() {
         )
         .layer(prometheus_layer);
 
-    let addr = "0.0.0.0:8080".parse::<SocketAddr>().unwrap();
-    tracing::info!("Listening on {}", addr);
-    axum::Server::bind(&addr)
+    let metrics = Router::new()
+        .route("/metrics", get(|| async move { metrics_handler.render() }))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(
+                    DefaultMakeSpan::new()
+                        .level(Level::INFO)
+                        .include_headers(true),
+                )
+                .on_request(DefaultOnRequest::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        );
+
+    let metrics_addr = "0.0.0.0:9091".parse::<SocketAddr>().unwrap();
+    tracing::info!("Metrics endpoint available at {}/metrics", metrics_addr);
+    tokio::spawn(async move {
+        axum::Server::bind(&metrics_addr)
+            .serve(metrics.into_make_service())
+            .await
+            .unwrap()
+    });
+
+    let app_addr = "0.0.0.0:8080".parse::<SocketAddr>().unwrap();
+    tracing::info!("Listening on {}", app_addr);
+    axum::Server::bind(&app_addr)
         .serve(app.into_make_service())
         .await
         .unwrap();

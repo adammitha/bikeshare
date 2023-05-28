@@ -36,5 +36,5 @@ kill_timeout = "5s"
     restart_limit = 0
 
 [metrics]
-port = 8080
+port = 9091
 path = "/metrics"
