@@ -1,7 +1,7 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use axum::{routing::get, Router};
-use axum_prometheus::PrometheusMetricLayer;
+use axum_prometheus::PrometheusMetricLayerBuilder;
 use bikeshare::status::station_status;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_semantic_conventions::resource::SERVICE_NAME;
@@ -12,7 +12,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[tokio::main]
 async fn main() {
     setup_tracing();
-    let (prometheus_layer, metrics_handler) = PrometheusMetricLayer::pair();
+    let (prometheus_layer, metrics_handler) = PrometheusMetricLayerBuilder::new()
+        .with_ignore_pattern("/metrics")
+        .with_default_metrics()
+        .build_pair();
     let app = Router::new()
         .route("/status", get(station_status))
         .layer(
