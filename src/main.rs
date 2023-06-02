@@ -1,8 +1,9 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use axum::{routing::get, Router};
 use axum_prometheus::PrometheusMetricLayerBuilder;
 use bikeshare::status::station_status;
+use bikeshare::ServerState;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_semantic_conventions::resource::SERVICE_NAME;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
@@ -16,8 +17,10 @@ async fn main() {
         .with_ignore_pattern("/metrics")
         .with_default_metrics()
         .build_pair();
+
     let app = Router::new()
         .route("/status", get(station_status))
+        .with_state(Arc::new(ServerState::new()))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(

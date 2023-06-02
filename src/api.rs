@@ -5,6 +5,7 @@ use sublime_fuzzy::{FuzzySearch, Scoring};
 
 use crate::API_URL;
 
+#[derive(Debug)]
 pub struct BikeshareApi {
     client: Client,
 }

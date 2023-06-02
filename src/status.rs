@@ -1,8 +1,16 @@
-use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
+use std::sync::Arc;
+
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use serde::Deserialize;
 use tracing::instrument;
 
-use crate::api::{BikeshareApi, StationStatus};
+use crate::api::StationStatus;
+use crate::ServerState;
 
 #[derive(Deserialize, Debug)]
 pub struct StationQuery {
@@ -13,9 +21,10 @@ pub struct StationQuery {
 /// and returns a JSON array of matching stations
 #[instrument]
 pub async fn station_status(
+    State(state): State<Arc<ServerState>>,
     query: Query<StationQuery>,
 ) -> Result<Json<Vec<StationStatus>>, StatusError> {
-    let response = BikeshareApi::new().fetch_data().await?;
+    let response = state.api.fetch_data().await?;
     let stations = match &query.name {
         Some(name) => response.filter_stations(&name),
         None => response.result,
