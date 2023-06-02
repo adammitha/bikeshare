@@ -61,33 +61,37 @@ async fn main() {
 }
 
 fn setup_tracing() {
-    let mut metadata: HashMap<String, String> = HashMap::with_capacity(1);
-    metadata.insert(
-        "x-honeycomb-team".into(),
-        std::env::var("HONEYCOMB_API_KEY").unwrap(),
-    );
+    match std::env::var("HONEYCOMB_API_KEY").ok() {
+        Some(key) => {
+            let mut metadata: HashMap<String, String> = HashMap::with_capacity(1);
+            metadata.insert("x-honeycomb-team".into(), key);
 
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .http()
-                .with_endpoint("https://api.honeycomb.io/v1/traces")
-                .with_headers(metadata),
-        )
-        .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
-            opentelemetry::sdk::resource::Resource::new(vec![SERVICE_NAME.string("bikeshare")]),
-        ))
-        .install_batch(opentelemetry::runtime::Tokio)
-        .unwrap();
+            let tracer = opentelemetry_otlp::new_pipeline()
+                .tracing()
+                .with_exporter(
+                    opentelemetry_otlp::new_exporter()
+                        .http()
+                        .with_endpoint("https://api.honeycomb.io/v1/traces")
+                        .with_headers(metadata),
+                )
+                .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
+                    opentelemetry::sdk::resource::Resource::new(vec![
+                        SERVICE_NAME.string("bikeshare"),
+                    ]),
+                ))
+                .install_batch(opentelemetry::runtime::Tokio)
+                .unwrap();
 
-    let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+            let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .with(otel_layer)
-        .init();
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+                ))
+                .with(tracing_subscriber::fmt::layer())
+                .with(otel_layer)
+                .init();
+        }
+        None => tracing_subscriber::fmt().init(),
+    }
 }
