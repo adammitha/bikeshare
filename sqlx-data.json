@@ -1,0 +1,13 @@
+{
+  "db": "SQLite",
+  "ef4d9f859d306af385292fe53fbc4c03c9fdf848fc736eee5e0942ac248fe538": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 10
+      }
+    },
+    "query": "INSERT INTO cache\n                (timestamp, name, longitude, latitude, total_slots, free_slots, avl_bikes, operative, style, is_estation)\n                VALUES (?,?,?,?,?,?,?,?,?,?)"
+  }
+}

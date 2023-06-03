@@ -20,5 +20,5 @@ opentelemetry-otlp = { version = "0.10", features = ["http-proto", "reqwest-clie
 opentelemetry = { version = "0.17", features = ["rt-tokio"] }
 opentelemetry-semantic-conventions = "0.9"
 axum-prometheus = "0.3.3"
-sqlx = { version = "0.6.3", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+sqlx = { version = "0.6.3", features = ["sqlite", "runtime-tokio-native-tls", "macros", "offline"] }
 time = { version = "0.3.21", features = ["std", "formatting"] }
