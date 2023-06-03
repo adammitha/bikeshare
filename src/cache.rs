@@ -1,3 +1,6 @@
+use std::str::FromStr;
+
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
 use sqlx::{migrate, query, Result, SqlitePool};
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
@@ -11,10 +14,12 @@ pub struct Cache {
 
 impl Cache {
     pub async fn new() -> Result<Self> {
-        let db = SqlitePool::connect(
+        let sqlite_options = SqliteConnectOptions::from_str(
             &std::env::var("DATABASE_URL").unwrap_or(String::from("sqlite:bikeshare.db")),
-        )
-        .await?;
+        )?
+        .journal_mode(SqliteJournalMode::Wal)
+        .create_if_missing(true);
+        let db = SqlitePool::connect_with(sqlite_options).await?;
         migrate!("./migrations").run(&db).await?;
         Ok(Self { db })
     }
