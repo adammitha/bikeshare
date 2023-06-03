@@ -64,7 +64,10 @@ async fn main() {
 }
 
 fn setup_tracing() {
-    match std::env::var("HONEYCOMB_API_KEY").ok() {
+    let filter_layer = tracing_subscriber::EnvFilter::new(
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,bikeshare=info,tower_http=info".into()),
+    );
+    let otel_layer = match std::env::var("HONEYCOMB_API_KEY").ok() {
         Some(key) => {
             let mut metadata: HashMap<String, String> = HashMap::with_capacity(1);
             metadata.insert("x-honeycomb-team".into(), key);
@@ -85,17 +88,14 @@ fn setup_tracing() {
                 .install_batch(opentelemetry::runtime::Tokio)
                 .unwrap();
 
-            let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+            Some(tracing_opentelemetry::layer().with_tracer(tracer))
 
-            tracing_subscriber::registry()
-                .with(tracing_subscriber::EnvFilter::new(
-                    std::env::var("RUST_LOG")
-                        .unwrap_or_else(|_| "warn,bikeshare=info,tower_http=info".into()),
-                ))
-                .with(tracing_subscriber::fmt::layer())
-                .with(otel_layer)
-                .init();
         }
-        None => tracing_subscriber::fmt().init(),
-    }
+        None => None,
+    };
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(tracing_subscriber::fmt::layer())
+        .with(otel_layer)
+        .init();
 }
