@@ -25,6 +25,7 @@ pub async fn station_status(
     query: Query<StationQuery>,
 ) -> Result<Json<Vec<StationStatus>>, StatusError> {
     let response = state.api.fetch_data().await?;
+    state.cache.update_cache(&response).await.unwrap();
     let stations = match &query.name {
         Some(name) => response.filter_stations(&name),
         None => response.result,

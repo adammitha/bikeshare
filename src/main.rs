@@ -89,7 +89,7 @@ fn setup_tracing() {
 
             tracing_subscriber::registry()
                 .with(tracing_subscriber::EnvFilter::new(
-                    std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,bikeshare=info".into()),
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,bikeshare=info,tower_http=info".into()),
                 ))
                 .with(tracing_subscriber::fmt::layer())
                 .with(otel_layer)

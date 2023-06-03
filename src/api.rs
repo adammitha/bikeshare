@@ -81,21 +81,21 @@ impl StatusApiData {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct StationStatus {
-    name: String,
+    pub name: String,
     #[serde(deserialize_with = "deserialize_coordinate")]
-    coordinates: Option<Coordinate>,
-    total_slots: u8,
-    free_slots: u8,
-    avl_bikes: u8,
-    operative: bool,
-    style: String,
-    is_estation: bool,
+    pub coordinates: Option<Coordinate>,
+    pub total_slots: u8,
+    pub free_slots: u8,
+    pub avl_bikes: u8,
+    pub operative: bool,
+    pub style: String,
+    pub is_estation: bool,
 }
 
-#[derive(Serialize, Clone)]
-struct Coordinate {
-    latitude: f64,
-    longitude: f64,
+#[derive(Serialize, Copy, Clone)]
+pub struct Coordinate {
+    pub latitude: f64,
+    pub longitude: f64,
 }
 
 fn deserialize_coordinate<'de, D>(deserializer: D) -> Result<Option<Coordinate>, D::Error>
