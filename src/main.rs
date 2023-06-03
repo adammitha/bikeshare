@@ -20,7 +20,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/status", get(station_status))
-        .with_state(Arc::new(ServerState::new()))
+        .with_state(Arc::new(ServerState::new().await))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(
@@ -89,7 +89,7 @@ fn setup_tracing() {
 
             tracing_subscriber::registry()
                 .with(tracing_subscriber::EnvFilter::new(
-                    std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,bikeshare=info".into()),
                 ))
                 .with(tracing_subscriber::fmt::layer())
                 .with(otel_layer)
