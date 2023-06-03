@@ -11,7 +11,10 @@ pub struct Cache {
 
 impl Cache {
     pub async fn new() -> Result<Self> {
-        let db = SqlitePool::connect("sqlite:bikeshare.db").await?;
+        let db = SqlitePool::connect(
+            &std::env::var("DATABASE_URL").unwrap_or(String::from("sqlite:bikeshare.db")),
+        )
+        .await?;
         migrate!("./migrations").run(&db).await?;
         Ok(Self { db })
     }
