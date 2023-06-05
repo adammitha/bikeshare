@@ -41,7 +41,3 @@ path = "/metrics"
 
 [env]
 DATABASE_URL = "sqlite:///data/bikeshare.db"
-
-[mounts]
-source = "bikeshare_data"
-destination = "/data"
