@@ -89,7 +89,6 @@ fn setup_tracing() {
                 .unwrap();
 
             Some(tracing_opentelemetry::layer().with_tracer(tracer))
-
         }
         None => None,
     };

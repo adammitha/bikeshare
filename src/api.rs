@@ -1,7 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use reqwest::{Client, ClientBuilder};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
-use sublime_fuzzy::{FuzzySearch, Scoring};
 
 use crate::API_URL;
 
@@ -62,24 +61,7 @@ pub struct StatusApiData {
     pub result: Vec<StationStatus>,
 }
 
-impl StatusApiData {
-    pub fn filter_stations(&self, name: &str) -> Vec<StationStatus> {
-        self.result
-            .as_slice()
-            .into_iter()
-            .filter(|station| {
-                FuzzySearch::new(name, &station.name)
-                    .case_insensitive()
-                    .score_with(&Scoring::default())
-                    .best_match()
-                    .is_some()
-            })
-            .cloned()
-            .collect::<Vec<StationStatus>>()
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StationStatus {
     pub name: String,
     #[serde(deserialize_with = "deserialize_coordinate")]
@@ -92,7 +74,7 @@ pub struct StationStatus {
     pub is_estation: bool,
 }
 
-#[derive(Serialize, Copy, Clone)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct Coordinate {
     pub latitude: f64,
     pub longitude: f64,

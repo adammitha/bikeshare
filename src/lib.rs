@@ -3,6 +3,8 @@ mod api;
 mod cache;
 pub mod status;
 
+use tokio::sync::Mutex;
+
 use api::BikeshareApi;
 use cache::Cache;
 
@@ -11,14 +13,14 @@ const API_URL: &'static str = "https://vancouver-ca.smoove.pro/api-public/statio
 #[derive(Debug)]
 pub struct ServerState {
     api: BikeshareApi,
-    cache: Cache,
+    cache: Mutex<Cache>,
 }
 
 impl ServerState {
     pub async fn new() -> Self {
         Self {
             api: BikeshareApi::new(),
-            cache: Cache::new().await.unwrap(),
+            cache: Mutex::new(Cache::new()),
         }
     }
 }

@@ -1,52 +1,72 @@
-use std::str::FromStr;
+#![allow(dead_code)]
+use std::ops::Sub;
 
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
-use sqlx::{migrate, query, Result, SqlitePool};
-use time::format_description::well_known::Iso8601;
-use time::OffsetDateTime;
+use sublime_fuzzy::{FuzzySearch, Scoring};
+use time::{ext::NumericalDuration, OffsetDateTime};
 
-use crate::api::StatusApiData;
+use crate::api::{StationStatus, StatusApiData};
 
 #[derive(Debug)]
 pub struct Cache {
-    db: SqlitePool,
+    timestamp: OffsetDateTime,
+    entries: Vec<StationStatus>,
 }
 
 impl Cache {
-    pub async fn new() -> Result<Self> {
-        let sqlite_options = SqliteConnectOptions::from_str(
-            &std::env::var("DATABASE_URL").unwrap_or(String::from("sqlite:bikeshare.db")),
-        )?
-        .journal_mode(SqliteJournalMode::Wal)
-        .create_if_missing(true);
-        let db = SqlitePool::connect_with(sqlite_options).await?;
-        migrate!("./migrations").run(&db).await?;
-        Ok(Self { db })
+    pub fn new() -> Self {
+        Self {
+            timestamp: OffsetDateTime::UNIX_EPOCH,
+            entries: Vec::new(),
+        }
     }
 
-    pub async fn update_cache(&self, data: &StatusApiData) -> Result<()> {
-        let transaction = self.db.begin().await?;
-        let timestamp = OffsetDateTime::now_utc().format(&Iso8601::DEFAULT).unwrap();
-        for status in &data.result {
-            let longitude = status.coordinates.unwrap().longitude;
-            let latitude = status.coordinates.unwrap().latitude;
-            let q = query!(
-                r#"INSERT INTO cache
-                (timestamp, name, longitude, latitude, total_slots, free_slots, avl_bikes, operative, style, is_estation)
-                VALUES (?,?,?,?,?,?,?,?,?,?)"#,
-                timestamp,
-                status.name,
-                longitude,
-                latitude,
-                status.total_slots,
-                status.free_slots,
-                status.avl_bikes,
-                status.operative,
-                status.style,
-                status.is_estation,
-            ).execute(&self.db).await?;
+    pub fn update_cache(&mut self, data: StatusApiData) {
+        tracing::info!("Updating cache");
+        self.timestamp = OffsetDateTime::now_utc();
+        for status in data.result {
+            self.entries.push(status);
         }
-        transaction.commit().await?;
-        Ok(())
+    }
+
+    pub fn lookup(&self, name: Option<&str>) -> Result<Vec<&StationStatus>> {
+        if self.is_expired() {
+            return Err(CacheError::Expired);
+        }
+        Ok(self.entries
+            .as_slice()
+            .into_iter()
+            .filter(|station| {
+                if let Some(station_name) = name {
+                    FuzzySearch::new(station_name, &station.name)
+                    .case_insensitive()
+                    .score_with(&Scoring::default())
+                    .best_match()
+                    .is_some()
+                } else {
+                    true
+                }
+            })
+            .collect::<Vec<&StationStatus>>())
+    }
+
+    pub fn is_expired(&self) -> bool {
+        let expiry_date = OffsetDateTime::now_utc()
+            .sub(5.minutes());
+        return expiry_date > self.timestamp;
+    }
+
+    fn clean_cache(&mut self) {
+        if OffsetDateTime::now_utc() - self.timestamp > 5.minutes() {
+            self.entries.clear()
+        }
+        todo!("Ship existing cache entries to DB and clear HashMap")
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum CacheError {
+    #[error("Cache entries have expired")]
+    Expired,
+}
+
+pub type Result<T> = std::result::Result<T, CacheError>;

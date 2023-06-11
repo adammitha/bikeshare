@@ -24,13 +24,14 @@ pub async fn station_status(
     State(state): State<Arc<ServerState>>,
     query: Query<StationQuery>,
 ) -> Result<Json<Vec<StationStatus>>, StatusError> {
-    let response = state.api.fetch_data().await?;
-    state.cache.update_cache(&response).await.unwrap();
-    let stations = match &query.name {
-        Some(name) => response.filter_stations(&name),
-        None => response.result,
+    let mut cache = state.cache.lock().await;
+    if cache.is_expired() {
+        cache.update_cache(state.api.fetch_data().await?);
+    }
+    let stations = match cache.lookup(query.name.as_deref()) {
+        Ok(res) => res.into_iter().cloned().collect(),
+        Err(_) => todo!("Shouldn't call lookup on an expired cache"),
     };
-
     Ok(Json(stations))
 }
 
