@@ -28,10 +28,12 @@ pub async fn station_status(
     if cache.is_expired() {
         cache.update_cache(state.api.fetch_data().await?);
     }
-    let stations = match cache.lookup(query.name.as_deref()) {
-        Ok(res) => res.into_iter().cloned().collect(),
-        Err(_) => todo!("Shouldn't call lookup on an expired cache"),
-    };
+    let stations = cache
+        .lookup(query.name.as_deref())
+        .expect("Shouldn't call lookup on an expired cache")
+        .into_iter()
+        .cloned()
+        .collect();
     Ok(Json(stations))
 }
 
