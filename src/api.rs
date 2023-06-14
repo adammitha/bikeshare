@@ -11,9 +11,13 @@ pub struct BikeshareApi {
 
 impl BikeshareApi {
     pub fn new() -> Self {
+        let timeout = std::env::var("BIKESHARE_TIMEOUT")
+            .unwrap_or("5".into())
+            .parse::<u64>()
+            .unwrap_or(5);
         Self {
             client: ClientBuilder::new()
-                .timeout(std::time::Duration::from_secs(5))
+                .timeout(std::time::Duration::from_secs(timeout))
                 .build()
                 .unwrap(),
         }
