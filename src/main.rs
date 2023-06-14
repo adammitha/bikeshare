@@ -1,4 +1,5 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tracing_subscriber::EnvFilter;
 
 use axum::{routing::get, Router};
 use axum_prometheus::PrometheusMetricLayerBuilder;
@@ -64,9 +65,10 @@ async fn main() {
 }
 
 fn setup_tracing() {
-    let filter_layer = tracing_subscriber::EnvFilter::new(
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,bikeshare=info,tower_http=info".into()),
-    );
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
+    let fmt_layer = tracing_subscriber::fmt::layer();
     let otel_layer = match std::env::var("HONEYCOMB_API_KEY").ok() {
         Some(key) => {
             let mut metadata: HashMap<String, String> = HashMap::with_capacity(1);
@@ -94,7 +96,7 @@ fn setup_tracing() {
     };
     tracing_subscriber::registry()
         .with(filter_layer)
-        .with(tracing_subscriber::fmt::layer())
+        .with(fmt_layer)
         .with(otel_layer)
         .init();
 }
