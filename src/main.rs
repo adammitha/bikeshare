@@ -21,6 +21,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/status", get(station_status))
+        .route("/healthcheck", get(|| async { axum::http::StatusCode::OK }))
         .with_state(Arc::new(ServerState::new().await))
         .layer(
             TraceLayer::new_for_http()

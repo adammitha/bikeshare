@@ -35,6 +35,15 @@ kill_timeout = "5s"
     grace_period = "1s"
     restart_limit = 0
 
+  [[services.http_checks]]
+    interval = "10s"
+    grace_period = "5s"
+    method = "get"
+    path = "/healthcheck"
+    protocol = "http"
+    restart_limit = 0
+    timeout = 2000
+
 [metrics]
 port = 9091
 path = "/metrics"
