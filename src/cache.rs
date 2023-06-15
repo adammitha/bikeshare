@@ -23,15 +23,11 @@ impl Cache<Stale> {
 
     pub async fn refresh(&mut self, api: &BikeshareApi) -> Result<Cache<Fresh>, reqwest::Error> {
         let fresh_cache = if self.is_expired() {
-            let mut entries = Vec::new();
-            for status in api.fetch_data().await?.result {
-                entries.push(status);
-            }
-            Cache::<Fresh>::new(entries)
+            Cache::<Fresh>::new(api.fetch_data().await?.result)
         } else {
             Cache::<Fresh>::with_timestamp(self.timestamp, std::mem::take(&mut self.entries))
         };
-        *self = From::from(fresh_cache.clone());
+        *self = fresh_cache.clone().into();
         Ok(fresh_cache)
     }
 
