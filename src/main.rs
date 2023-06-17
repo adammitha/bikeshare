@@ -96,5 +96,8 @@ fn setup_tracing() {
         None => None,
     };
     tracing_subscriber::registry()
-        .with(filter_layer).with(fmt_layer).with(otel_layer).init();
+        .with(filter_layer)
+        .with(fmt_layer)
+        .with(otel_layer)
+        .init();
 }
