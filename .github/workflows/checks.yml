@@ -8,7 +8,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  t:
+  fmt:
     name: 'cargo fmt'
     runs-on: ubuntu-latest
     steps:
@@ -21,3 +21,16 @@ jobs:
     - uses: mbrobbel/rustfmt-check@master
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+  validate:
+    name: 'Validate fly config'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+    - name: Setup fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
+    - name: Validate fly config
+      id: validate
+      run: flyctl config validate
