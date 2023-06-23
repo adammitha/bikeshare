@@ -28,9 +28,8 @@ pub async fn station_status(
         .cache
         .lock()
         .await
-        .refresh(&state.api)
+        .lookup(query.name.as_deref(), &state.api)
         .await?
-        .lookup(query.name.as_deref())
         .into_iter()
         .collect();
     Ok(Json(stations))
