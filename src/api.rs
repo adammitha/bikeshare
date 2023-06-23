@@ -80,8 +80,8 @@ pub struct StationStatus {
 
 #[derive(Serialize, Copy, Clone, Debug)]
 pub struct Coordinate {
-    pub latitude: f64,
-    pub longitude: f64,
+    pub latitude: f32,
+    pub longitude: f32,
 }
 
 fn deserialize_coordinate<'de, D>(deserializer: D) -> Result<Option<Coordinate>, D::Error>
@@ -101,7 +101,7 @@ where
         where
             E: serde::de::Error,
         {
-            let mut coords = v.split(',').map(|c| c.trim().parse::<f64>());
+            let mut coords = v.split(',').map(|c| c.trim().parse::<f32>());
 
             match (coords.next(), coords.next()) {
                 (Some(Ok(latitude)), Some(Ok(longitude))) => Ok(Some(Coordinate {

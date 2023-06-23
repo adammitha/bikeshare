@@ -1,6 +1,7 @@
-#![allow(unused_variables)]
+#![allow(dead_code)]
 mod api;
 mod cache;
+mod db;
 pub mod status;
 
 use tokio::sync::Mutex;
