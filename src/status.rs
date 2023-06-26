@@ -28,7 +28,7 @@ pub async fn station_status(
         .cache
         .lock()
         .await
-        .lookup(query.name.as_deref(), &state.api)
+        .lookup(query.name.as_deref())
         .await?
         .into_iter()
         .collect();

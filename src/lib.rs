@@ -13,15 +13,13 @@ const API_URL: &'static str = "https://vancouver-ca.smoove.pro/api-public/statio
 
 #[derive(Debug)]
 pub struct ServerState {
-    api: BikeshareApi,
     cache: Mutex<Cache>,
 }
 
 impl ServerState {
     pub async fn new() -> Self {
         Self {
-            api: BikeshareApi::new(),
-            cache: Mutex::new(Cache::new()),
+            cache: Mutex::new(Cache::new(BikeshareApi::new())),
         }
     }
 }

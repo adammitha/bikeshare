@@ -5,23 +5,25 @@ use time::{ext::NumericalDuration, OffsetDateTime};
 
 use crate::api::{BikeshareApi, StationStatus};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Cache {
     timestamp: OffsetDateTime,
     entries: Vec<StationStatus>,
+    api: BikeshareApi,
 }
 
 impl Cache {
-    pub fn new() -> Self {
+    pub fn new(api: BikeshareApi) -> Self {
         Self {
             timestamp: OffsetDateTime::UNIX_EPOCH,
             entries: Vec::new(),
+            api,
         }
     }
 
-    pub async fn refresh(&mut self, api: &BikeshareApi) -> Result<(), reqwest::Error> {
+    pub async fn refresh(&mut self) -> Result<(), reqwest::Error> {
         if self.is_expired() {
-            self.entries = api.fetch_data().await?.result;
+            self.entries = self.api.fetch_data().await?.result;
             self.timestamp = OffsetDateTime::now_utc();
         }
         Ok(())
@@ -35,9 +37,8 @@ impl Cache {
     pub async fn lookup(
         &mut self,
         name: Option<&str>,
-        api: &BikeshareApi,
     ) -> Result<Vec<StationStatus>, reqwest::Error> {
-        self.refresh(api).await?;
+        self.refresh().await?;
         Ok(self
             .entries
             .iter()
