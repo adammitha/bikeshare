@@ -38,7 +38,7 @@ pub async fn station_status(
 /// Errors that can occur when retrieving the status of a bike station
 #[derive(Debug, thiserror::Error)]
 pub enum StatusError {
-    #[error("Error retrieving bikeshare data from the cache")]
+    #[error("Error retrieving bikeshare data from the cache: {0}")]
     Cache(#[from] CacheError),
 }
 

@@ -65,8 +65,8 @@ impl Cache {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CacheError {
-    #[error("Error fetching data from the bikeshare api")]
+    #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
-    #[error("Error writing api data to the database")]
+    #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
 }
