@@ -32,9 +32,9 @@ impl Db {
     fn make_copy_data(api_data: &[StationStatus]) -> std::io::Result<Vec<u8>> {
         let mut buf = Vec::new();
         let timestamp = OffsetDateTime::now_utc();
-        let lines = api_data.iter().map(|status| {
-            BikeshareData::from_station_status(status, timestamp).to_text_row()
-        });
+        let lines = api_data
+            .iter()
+            .map(|status| BikeshareData::from_station_status(status, timestamp).to_text_row());
         for line in lines {
             writeln!(&mut buf, "{}", line)?;
         }
