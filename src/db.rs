@@ -1,4 +1,6 @@
-use sqlx::{postgres::PgPoolOptions, query, Result};
+use std::io::Write;
+
+use sqlx::{postgres::PgPoolOptions, Result};
 use time::OffsetDateTime;
 
 use crate::api::StationStatus;
@@ -16,32 +18,27 @@ impl Db {
     }
 
     pub async fn archive_api_data(&self, api_data: &[StationStatus]) -> Result<()> {
-        let transaction = self.inner.begin().await?;
+        let copy_data = Self::make_copy_data(api_data).unwrap();
+        let mut conn = self.inner.acquire().await.unwrap();
+        let mut copy_in = conn
+            .copy_in_raw("COPY cache FROM STDIN (DELIMITER '|')")
+            .await
+            .unwrap();
+        copy_in.send(copy_data).await.unwrap();
+        copy_in.finish().await.unwrap();
+        Ok(())
+    }
+
+    fn make_copy_data(api_data: &[StationStatus]) -> std::io::Result<Vec<u8>> {
+        let mut buf = Vec::new();
         let timestamp = OffsetDateTime::now_utc();
-        for row in api_data
-            .iter()
-            .map(|status| BikeshareData::from_station_status(status, timestamp))
-        {
-            query!(
-                r#"INSERT INTO
-        cache(time, name, longitude, latitude, total_slots,
-        free_slots, avl_bikes, operative, style, is_estation)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);"#,
-                row.time,
-                row.name,
-                row.latitude,
-                row.longitude,
-                row.total_slots,
-                row.free_slots,
-                row.avl_bikes,
-                row.operative,
-                row.style,
-                row.is_estation
-            )
-            .execute(&self.inner)
-            .await?;
+        let lines = api_data.iter().map(|status| {
+            BikeshareData::from_station_status(status, timestamp).to_text_row()
+        });
+        for line in lines {
+            writeln!(&mut buf, "{}", line)?;
         }
-        transaction.commit().await
+        Ok(buf)
     }
 }
 
@@ -73,5 +70,27 @@ impl BikeshareData {
             style: status.style.clone(),
             is_estation: status.is_estation,
         }
+    }
+
+    fn to_text_row(&self) -> String {
+        fn opt_f32_to_str(f: Option<f32>) -> String {
+            match f {
+                Some(n) => format!("{}", n),
+                None => "".into(),
+            }
+        }
+        format!(
+            "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+            self.time,
+            self.name,
+            opt_f32_to_str(self.latitude),
+            opt_f32_to_str(self.longitude),
+            self.total_slots,
+            self.free_slots,
+            self.avl_bikes,
+            self.operative,
+            self.style,
+            self.is_estation
+        )
     }
 }

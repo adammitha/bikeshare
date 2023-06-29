@@ -47,6 +47,3 @@ kill_timeout = "5s"
 [metrics]
 port = 9091
 path = "/metrics"
-
-[env]
-DATABASE_URL = "sqlite:///data/bikeshare.db"

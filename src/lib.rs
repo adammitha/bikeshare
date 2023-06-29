@@ -4,6 +4,7 @@ mod cache;
 mod db;
 pub mod status;
 
+use db::Db;
 use tokio::sync::Mutex;
 
 use api::BikeshareApi;
@@ -17,9 +18,13 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub async fn new() -> Self {
+    pub async fn new(db_url: Option<String>) -> Self {
+        let db = match db_url {
+            Some(url) => Db::new(&url).await.ok(),
+            None => None,
+        };
         Self {
-            cache: Mutex::new(Cache::new(BikeshareApi::new())),
+            cache: Mutex::new(Cache::new(BikeshareApi::new(), db)),
         }
     }
 }

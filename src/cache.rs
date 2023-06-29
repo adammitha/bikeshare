@@ -3,27 +3,35 @@ use std::ops::Sub;
 use sublime_fuzzy::{FuzzySearch, Scoring};
 use time::{ext::NumericalDuration, OffsetDateTime};
 
-use crate::api::{BikeshareApi, StationStatus};
+use crate::{
+    api::{BikeshareApi, StationStatus},
+    db::Db,
+};
 
 #[derive(Debug)]
 pub struct Cache {
     timestamp: OffsetDateTime,
     entries: Vec<StationStatus>,
     api: BikeshareApi,
+    db: Option<Db>,
 }
 
 impl Cache {
-    pub fn new(api: BikeshareApi) -> Self {
+    pub fn new(api: BikeshareApi, db: Option<Db>) -> Self {
         Self {
             timestamp: OffsetDateTime::UNIX_EPOCH,
             entries: Vec::new(),
             api,
+            db,
         }
     }
 
-    pub async fn refresh(&mut self) -> Result<(), reqwest::Error> {
+    pub async fn refresh(&mut self) -> Result<(), CacheError> {
         if self.is_expired() {
             self.entries = self.api.fetch_data().await?.result;
+            if let Some(db) = &self.db {
+                db.archive_api_data(&self.entries).await?;
+            }
             self.timestamp = OffsetDateTime::now_utc();
         }
         Ok(())
@@ -34,10 +42,7 @@ impl Cache {
         return expiry_date > self.timestamp;
     }
 
-    pub async fn lookup(
-        &mut self,
-        name: Option<&str>,
-    ) -> Result<Vec<StationStatus>, reqwest::Error> {
+    pub async fn lookup(&mut self, name: Option<&str>) -> Result<Vec<StationStatus>, CacheError> {
         self.refresh().await?;
         Ok(self
             .entries
@@ -56,4 +61,12 @@ impl Cache {
             .cloned()
             .collect::<Vec<StationStatus>>())
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CacheError {
+    #[error("Error fetching data from the bikeshare api")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Error writing api data to the database")]
+    Sqlx(#[from] sqlx::Error),
 }
