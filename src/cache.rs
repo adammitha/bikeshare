@@ -61,6 +61,10 @@ impl Cache {
             .cloned()
             .collect::<Vec<StationStatus>>())
     }
+
+    pub fn timestamp(&self) -> OffsetDateTime {
+        self.timestamp
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

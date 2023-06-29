@@ -6,7 +6,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 use tracing::instrument;
 
 use crate::ServerState;
@@ -17,22 +18,30 @@ pub struct StationQuery {
     name: Option<String>,
 }
 
+#[derive(Serialize, Debug)]
+pub struct StationResponse {
+    timestamp: OffsetDateTime,
+    stations: Vec<StationStatus>,
+}
+
 /// Queries the 3rd-party bikeshare API, filters the result based on the user's search string,
 /// and returns a JSON array of matching stations
 #[instrument]
 pub async fn station_status(
     State(state): State<Arc<ServerState>>,
     query: Query<StationQuery>,
-) -> Result<Json<Vec<StationStatus>>, StatusError> {
-    let stations = state
-        .cache
-        .lock()
-        .await
+) -> Result<Json<StationResponse>, StatusError> {
+    let mut cache = state.cache.lock().await;
+    let stations: Vec<StationStatus> = cache
         .lookup(query.name.as_deref())
         .await?
         .into_iter()
         .collect();
-    Ok(Json(stations))
+    let timestamp = cache.timestamp();
+    Ok(Json(StationResponse {
+        timestamp,
+        stations,
+    }))
 }
 
 /// Errors that can occur when retrieving the status of a bike station
