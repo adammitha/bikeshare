@@ -3,61 +3,50 @@ use std::ops::Sub;
 use sublime_fuzzy::{FuzzySearch, Scoring};
 use time::{ext::NumericalDuration, OffsetDateTime};
 
-use crate::api::{BikeshareApi, StationStatus};
+use crate::{
+    api::{BikeshareApi, StationStatus},
+    db::Db,
+};
 
-#[derive(Debug, Clone)]
-pub struct Cache<S: CacheState + Clone> {
+#[derive(Debug)]
+pub struct Cache {
     timestamp: OffsetDateTime,
     entries: Vec<StationStatus>,
-    marker: std::marker::PhantomData<S>,
+    api: BikeshareApi,
+    db: Option<Db>,
 }
 
-impl Cache<Stale> {
-    pub fn new() -> Self {
+impl Cache {
+    pub fn new(api: BikeshareApi, db: Option<Db>) -> Self {
         Self {
             timestamp: OffsetDateTime::UNIX_EPOCH,
             entries: Vec::new(),
-            marker: Default::default(),
+            api,
+            db,
         }
     }
 
-    pub async fn refresh(&mut self, api: &BikeshareApi) -> Result<Cache<Fresh>, reqwest::Error> {
-        let fresh_cache = if self.is_expired() {
-            Cache::<Fresh>::new(api.fetch_data().await?.result)
-        } else {
-            Cache::<Fresh>::with_timestamp(self.timestamp, std::mem::take(&mut self.entries))
-        };
-        *self = fresh_cache.clone().into();
-        Ok(fresh_cache)
+    pub async fn refresh(&mut self) -> Result<(), CacheError> {
+        if self.is_expired() {
+            self.entries = self.api.fetch_data().await?.result;
+            if let Some(db) = &self.db {
+                db.archive_api_data(&self.entries).await?;
+            }
+            self.timestamp = OffsetDateTime::now_utc();
+        }
+        Ok(())
     }
 
     fn is_expired(&self) -> bool {
         let expiry_date = OffsetDateTime::now_utc().sub(5.minutes());
         return expiry_date > self.timestamp;
     }
-}
 
-/// Stores the result of the bikeshare API call for 5 minutes.
-impl Cache<Fresh> {
-    fn new(entries: Vec<StationStatus>) -> Self {
-        Self {
-            timestamp: OffsetDateTime::now_utc(),
-            entries,
-            marker: Default::default(),
-        }
-    }
-
-    fn with_timestamp(timestamp: OffsetDateTime, entries: Vec<StationStatus>) -> Self {
-        Self {
-            timestamp,
-            entries,
-            marker: Default::default(),
-        }
-    }
-
-    pub fn lookup(self, name: Option<&str>) -> Vec<StationStatus> {
-        self.entries
-            .into_iter()
+    pub async fn lookup(&mut self, name: Option<&str>) -> Result<Vec<StationStatus>, CacheError> {
+        self.refresh().await?;
+        Ok(self
+            .entries
+            .iter()
             .filter(|station| {
                 if let Some(station_name) = name {
                     FuzzySearch::new(station_name, &station.name)
@@ -69,25 +58,15 @@ impl Cache<Fresh> {
                     true
                 }
             })
-            .collect::<Vec<StationStatus>>()
+            .cloned()
+            .collect::<Vec<StationStatus>>())
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Stale {}
-#[derive(Debug, Clone)]
-pub enum Fresh {}
-
-pub trait CacheState: std::fmt::Debug + Clone {}
-impl CacheState for Stale {}
-impl CacheState for Fresh {}
-
-impl From<Cache<Fresh>> for Cache<Stale> {
-    fn from(value: Cache<Fresh>) -> Cache<Stale> {
-        Cache::<Stale> {
-            timestamp: value.timestamp,
-            entries: value.entries,
-            marker: Default::default(),
-        }
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum CacheError {
+    #[error("Error fetching data from the bikeshare api")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Error writing api data to the database")]
+    Sqlx(#[from] sqlx::Error),
 }

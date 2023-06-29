@@ -1,26 +1,30 @@
-#![allow(unused_variables)]
+#![allow(dead_code)]
 mod api;
 mod cache;
+mod db;
 pub mod status;
 
+use db::Db;
 use tokio::sync::Mutex;
 
 use api::BikeshareApi;
-use cache::{Cache, Stale};
+use cache::Cache;
 
 const API_URL: &'static str = "https://vancouver-ca.smoove.pro/api-public/stations";
 
 #[derive(Debug)]
 pub struct ServerState {
-    api: BikeshareApi,
-    cache: Mutex<Cache<Stale>>,
+    cache: Mutex<Cache>,
 }
 
 impl ServerState {
-    pub async fn new() -> Self {
+    pub async fn new(db_url: Option<String>) -> Self {
+        let db = match db_url {
+            Some(url) => Db::new(&url).await.ok(),
+            None => None,
+        };
         Self {
-            api: BikeshareApi::new(),
-            cache: Mutex::new(Cache::new()),
+            cache: Mutex::new(Cache::new(BikeshareApi::new(), db)),
         }
     }
 }

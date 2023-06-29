@@ -9,8 +9,8 @@ use axum::{
 use serde::Deserialize;
 use tracing::instrument;
 
-use crate::api::StationStatus;
 use crate::ServerState;
+use crate::{api::StationStatus, cache::CacheError};
 
 #[derive(Deserialize, Debug)]
 pub struct StationQuery {
@@ -28,36 +28,22 @@ pub async fn station_status(
         .cache
         .lock()
         .await
-        .refresh(&state.api)
-        .await?
         .lookup(query.name.as_deref())
+        .await?
         .into_iter()
         .collect();
     Ok(Json(stations))
 }
 
 /// Errors that can occur when retrieving the status of a bike station
+#[derive(Debug, thiserror::Error)]
 pub enum StatusError {
-    ApiFailure(reqwest::Error),
+    #[error("Error retrieving bikeshare data from the cache")]
+    Cache(#[from] CacheError),
 }
 
 impl IntoResponse for StatusError {
     fn into_response(self) -> axum::response::Response {
-        let (status, message) = match self {
-            StatusError::ApiFailure(inner) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Error fetching station status from the bike share API: {}",
-                    inner
-                ),
-            ),
-        };
-        (status, message).into_response()
-    }
-}
-
-impl From<reqwest::Error> for StatusError {
-    fn from(err: reqwest::Error) -> Self {
-        StatusError::ApiFailure(err)
+        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
     }
 }

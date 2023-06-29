@@ -1,13 +1,24 @@
 {
-  "db": "SQLite",
-  "ef4d9f859d306af385292fe53fbc4c03c9fdf848fc736eee5e0942ac248fe538": {
+  "db": "PostgreSQL",
+  "fda081c73d1f8990c711a39467fe1466c7f92c27860fc9486862539440c42b5f": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
-        "Right": 10
+        "Left": [
+          "Timestamptz",
+          "Text",
+          "Float4",
+          "Float4",
+          "Int4",
+          "Int4",
+          "Int4",
+          "Bool",
+          "Text",
+          "Bool"
+        ]
       }
     },
-    "query": "INSERT INTO cache\n                (timestamp, name, longitude, latitude, total_slots, free_slots, avl_bikes, operative, style, is_estation)\n                VALUES (?,?,?,?,?,?,?,?,?,?)"
+    "query": "INSERT INTO\n        cache(time, name, longitude, latitude, total_slots,\n        free_slots, avl_bikes, operative, style, is_estation)\n        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);"
   }
 }
