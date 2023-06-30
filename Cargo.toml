@@ -21,5 +21,5 @@ opentelemetry = { version = "0.17", features = ["rt-tokio"] }
 opentelemetry-semantic-conventions = "0.9"
 axum-prometheus = "0.3.3"
 sqlx = { version = "0.6.3", features = ["postgres", "time", "runtime-tokio-native-tls", "macros", "offline"] }
-time = { version = "0.3.21", features = ["std", "formatting"] }
+time = { version = "0.3.21", features = ["std", "serde-human-readable"] }
 thiserror = "1.0.40"
