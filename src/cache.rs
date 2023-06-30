@@ -65,6 +65,11 @@ impl Cache {
     pub fn timestamp(&self) -> OffsetDateTime {
         self.timestamp
     }
+
+    pub fn invalidate(&mut self) {
+        self.timestamp = OffsetDateTime::UNIX_EPOCH;
+        self.entries.clear();
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

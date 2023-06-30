@@ -16,6 +16,14 @@ use crate::{api::StationStatus, cache::CacheError};
 #[derive(Deserialize, Debug)]
 pub struct StationQuery {
     name: Option<String>,
+    #[serde(default = "StationQuery::default_cached_value")]
+    cached: bool,
+}
+
+impl StationQuery {
+    fn default_cached_value() -> bool {
+        true
+    }
 }
 
 #[derive(Serialize, Debug)]
@@ -32,6 +40,9 @@ pub async fn station_status(
     query: Query<StationQuery>,
 ) -> Result<Json<StationResponse>, StatusError> {
     let mut cache = state.cache.lock().await;
+    if !query.cached {
+        cache.invalidate();
+    }
     let stations: Vec<StationStatus> = cache
         .lookup(query.name.as_deref())
         .await?
