@@ -33,7 +33,11 @@ async fn main() {
                         .include_headers(true),
                 )
                 .on_request(DefaultOnRequest::new().level(Level::INFO))
-                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+                .on_response(
+                    DefaultOnResponse::new()
+                        .level(Level::INFO)
+                        .include_headers(true),
+                ),
         )
         .layer(prometheus_layer);
 
