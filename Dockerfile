@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/usr/local/cargo,from=rust:latest,source=/usr/loca
 FROM debian:bullseye-slim
 
 RUN apt-get update
-RUN apt install -y ca-certificates
+RUN apt install -y ca-certificates openssl
 
 # Run as "app" user
 RUN useradd -ms /bin/bash app
