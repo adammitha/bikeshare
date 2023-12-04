@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/usr/local/cargo,from=rust:latest,source=/usr/loca
     cargo build --release && mv ./target/release/bikeshare ./bikeshare
 
 # Runtime image
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update
 RUN apt install -y ca-certificates openssl
