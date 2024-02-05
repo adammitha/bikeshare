@@ -36,6 +36,9 @@
           packages = with pkgs; [
             rustToolchain
             cargo-edit
+            openssl
+            pkg-config
+            protobuf
           ];
           RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
         };
